@@ -12,7 +12,7 @@ class SquaredError:
 
 
 class XGBoostRegressor:
-    def __init__(self, n_esti=199, learning_rate=0.3, lamb=1, gamma=8):
+    def __init__(self, n_esti=99, learning_rate=0.1, lamb=1, gamma=0):
         self.n_esti = n_esti
         self.learning_rate = learning_rate
         self.trees = []
@@ -38,12 +38,12 @@ class XGBoostRegressor:
         best_feature = None
         parent = self.similarity(residuals)
 
-        for feature in range(X.shape[1]):
-            unq_val = np.unique(X.iloc[:, feature])
+        for feature in list(X.columns):
+            unq_val = np.unique(X.loc[:, feature])
             thresholds = (unq_val[1:] + unq_val[:-1]) / 2
 
             for threshold in thresholds:
-                logical = X.iloc[:, feature] <= threshold
+                logical = X.loc[:, feature] <= threshold
 
                 r_left = residuals[logical]
                 r_right = residuals[~logical]
@@ -79,7 +79,7 @@ class XGBoostRegressor:
         if ifeature is None:
             return Node(label=leaf_val)
 
-        log = X.iloc[:, ifeature] <= ithreshold
+        log = X.loc[:, ifeature] <= ithreshold
 
         left_child = self.build_tree(X.loc[log], residuals[log], depth + 1)
         right_child = self.build_tree(X.loc[~log], residuals[~log], depth + 1)
@@ -90,7 +90,7 @@ class XGBoostRegressor:
         if node.is_leaf():
             return node.label
 
-        if x.iloc[node.feature] <= node.threshold:
+        if x[node.feature] <= node.threshold:
             return self.predict_onetree(node.left, x)
 
         return self.predict_onetree(node.right, x)
@@ -117,15 +117,17 @@ class XGBoostRegressor:
                 X.shape[1], int(self.col_subsample * X.shape[1]), replace=False
             )
             self.btree = self.build_tree(
-                X.iloc[row_idx, col_features], residuals[row_idx]
+                X.iloc[row_idx][self.features[col_features]], residuals[row_idx]
             )
             self.trees.append(self.btree)
             self.iprediction += self.learning_rate * self.predict_tree(X)
-            residuals[row_idx] = y[row_idx] - self.iprediction[row_idx]
+            residuals = y - self.iprediction
 
     def fit(self, X, y):
         self.X = X
         self.y = y
+        self.features = np.array(self.X.columns)
+
         self.boosting(self.X, self.y)
 
     def predict_each(self, x):
@@ -147,7 +149,7 @@ class XGBoostRegressor:
     def evaluate(self, X_test, y_test):
         predictions = self.predict(X_test)
 
-        # return np.sqrt(np.mean((np.array(y_test) - predictions) ** 2))
+        return np.sqrt(np.mean((np.array(y_test) - predictions) ** 2))
         return np.mean(np.abs(y_test - predictions))
 
 
@@ -180,4 +182,4 @@ xtree = XGBoostRegressor()
 xtree.fit(X_train, y_train)
 print(xtree.evaluate(X_val, y_val))
 print(xtree.evaluate(X_test, y_test))
-print("-=-=--=--=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=")
+print("----- xgboost done -----")
