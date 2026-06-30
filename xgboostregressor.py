@@ -12,7 +12,7 @@ class SquaredError:
 
 
 class XGBoostRegressor:
-    def __init__(self, n_esti=99, learning_rate=0.1, lamb=1, gamma=0):
+    def __init__(self, n_esti=399, learning_rate=0.1, lamb=300, gamma=0.1):
         self.n_esti = n_esti
         self.learning_rate = learning_rate
         self.trees = []
@@ -24,6 +24,8 @@ class XGBoostRegressor:
         self.min_sample_split = 30
         self.row_subsample = 0.8
         self.col_subsample = 0.8
+        self.early_stopping_rounds = 20
+        self.best_iteration = 0
 
     def similarity(self, r):
         g, h = self.loss.gradient_and_hessian(
@@ -108,8 +110,11 @@ class XGBoostRegressor:
         self.initial_prediction = np.mean(y)
         self.iprediction = np.full(y.shape, self.initial_prediction)
         residuals = np.array(y - self.iprediction)
+        self.val_rmse = []
+        best_rmse = float("inf")
+        rnds_noimporve = 0
 
-        for _ in range(self.n_esti):
+        for i in range(self.n_esti):
             row_idx = np.random.choice(
                 len(residuals), int(self.row_subsample * len(residuals)), replace=False
             )
@@ -123,17 +128,36 @@ class XGBoostRegressor:
             self.iprediction += self.learning_rate * self.predict_tree(X)
             residuals = y - self.iprediction
 
-    def fit(self, X, y):
+            vali_rmse = self.evaluate(self.X_val, self.y_val)
+            self.val_rmse.append(vali_rmse)
+
+            if vali_rmse < best_rmse:
+                best_rmse = vali_rmse
+                self.best_iteration = i
+                rnds_noimporve = 0
+            else:
+                rnds_noimporve += 1
+
+            if rnds_noimporve >= self.early_stopping_rounds:
+                print(f"Early stopping at tree {i + 1}")
+                self.trees = self.trees[: -1 * self.early_stopping_rounds]
+                break
+
+    def fit(self, X, y, X_val, y_val):
         self.X = X
         self.y = y
+        self.X_val = X_val
+        self.y_val = y_val
         self.features = np.array(self.X.columns)
 
         self.boosting(self.X, self.y)
 
-    def predict_each(self, x):
+    def predict_each(self, x, n_trees=None):
         final_pred = self.initial_prediction
+        if n_trees is None:
+            n_trees = len(self.trees)
 
-        for tree in self.trees:
+        for tree in self.trees[:n_trees]:
             final_pred += self.learning_rate * self.predict_onetree(tree, x)
 
         return final_pred
@@ -152,6 +176,9 @@ class XGBoostRegressor:
         return np.sqrt(np.mean((np.array(y_test) - predictions) ** 2))
         return np.mean(np.abs(y_test - predictions))
 
+    def val_rmse_each_tree(self):
+        return np.array(self.val_rmse)
+
 
 df = pd.read_csv("insurance.csv")
 df["sex"] = df["sex"].map({"female": 0, "male": 1})
@@ -164,7 +191,7 @@ print(df.info()) """
 X = df.drop(columns=["charges"])
 y = df.loc[:, "charges"]
 
-# np.random.seed(420)
+np.random.seed(42)
 
 indices = np.arange(len(X))
 np.random.shuffle(indices)
@@ -179,7 +206,9 @@ X_test = X.iloc[indices[split_2:], :]
 y_test = y.iloc[indices[split_2:]].values
 
 xtree = XGBoostRegressor()
-xtree.fit(X_train, y_train)
-print(xtree.evaluate(X_val, y_val))
-print(xtree.evaluate(X_test, y_test))
+xtree.fit(X_train, y_train, X_val, y_val)
+print(xtree.val_rmse_each_tree()[:-20], xtree.best_iteration)
+# print(np.min(xtree.val_rmse_each_tree()))
+print(f"validation set accuracy --> {xtree.evaluate(X_val, y_val)}")
+print(f"test set accuracy -->       {xtree.evaluate(X_test, y_test)}")
 print("----- xgboost done -----")
