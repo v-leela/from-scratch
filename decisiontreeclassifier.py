@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-df = pd.read_csv("/Users/vallurileelasaikrishna/Documents/from-scratch/heart.csv")
+df = pd.read_csv("heart.csv")
 
 #print(df.head())
 #print(df.shape)
