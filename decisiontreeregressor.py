@@ -140,7 +140,7 @@ class DecisionTreeRegressor:
 
 
 
-df = pd.read_csv("/Users/vallurileelasaikrishna/Documents/from-scratch/insurance.csv")
+df = pd.read_csv("insurance.csv")
 
 df['sex'] = df['sex'].map({'female': 0, 'male': 1})
 df['smoker'] = df['smoker'].map({'no': 0, 'yes': 1})
