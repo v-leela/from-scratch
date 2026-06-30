@@ -85,7 +85,7 @@ class RandomForestClassifier:
 
 
 
-df = pd.read_csv("/Users/vallurileelasaikrishna/Documents/from-scratch/heart.csv")
+df = pd.read_csv("heart.csv")
 
 X = df.iloc[:,:-1]
 y = df.iloc[:,-1]
