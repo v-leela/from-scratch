@@ -26,6 +26,7 @@ class XGBoostRegressor:
         self.col_subsample = 0.8
         self.early_stopping_rounds = 20
         self.best_iteration = 0
+        self.n_bins = 10
 
     def similarity(self, r):
         g, h = self.loss.gradient_and_hessian(
@@ -41,8 +42,10 @@ class XGBoostRegressor:
         parent = self.similarity(residuals)
 
         for feature in list(X.columns):
-            unq_val = np.unique(X.loc[:, feature])
-            thresholds = (unq_val[1:] + unq_val[:-1]) / 2
+            """ unq_val = np.unique(X.loc[:, feature])
+            thresholds = (unq_val[1:] + unq_val[:-1]) / 2 """
+            quantiles = np.linspace(0, 1, self.n_bins + 1)[1:-1]
+            thresholds = np.quantile(np.array(X.loc[:, feature]), quantiles)
 
             for threshold in thresholds:
                 logical = X.loc[:, feature] <= threshold
@@ -80,6 +83,8 @@ class XGBoostRegressor:
 
         if ifeature is None:
             return Node(label=leaf_val)
+
+        self.features_gain[ifeature] += float(igain)
 
         log = X.loc[:, ifeature] <= ithreshold
 
@@ -149,6 +154,7 @@ class XGBoostRegressor:
         self.X_val = X_val
         self.y_val = y_val
         self.features = np.array(self.X.columns)
+        self.features_gain = dict(zip(self.X.columns, [0] * X.shape[1]))
 
         self.boosting(self.X, self.y)
 
@@ -179,6 +185,16 @@ class XGBoostRegressor:
     def val_rmse_each_tree(self):
         return np.array(self.val_rmse)
 
+    def feature_imp(self):
+        total = sum(self.features_gain.values())
+
+        self.ftrpercent = {
+            key: (val / total) * 100 for key, val in self.features_gain.items()
+        }
+
+        for key, val in self.ftrpercent.items():
+            print(f"{key} : {val}")
+
 
 df = pd.read_csv("insurance.csv")
 df["sex"] = df["sex"].map({"female": 0, "male": 1})
@@ -191,7 +207,7 @@ print(df.info()) """
 X = df.drop(columns=["charges"])
 y = df.loc[:, "charges"]
 
-np.random.seed(42)
+# np.random.seed(42)
 
 indices = np.arange(len(X))
 np.random.shuffle(indices)
@@ -211,4 +227,5 @@ print(xtree.val_rmse_each_tree()[:-20], xtree.best_iteration)
 # print(np.min(xtree.val_rmse_each_tree()))
 print(f"validation set accuracy --> {xtree.evaluate(X_val, y_val)}")
 print(f"test set accuracy -->       {xtree.evaluate(X_test, y_test)}")
+xtree.feature_imp()
 print("----- xgboost done -----")
