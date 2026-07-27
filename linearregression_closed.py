@@ -25,6 +25,11 @@ class LinearRegressionClosed:
 
         if self.theta is not None:
             return Xb @ self.theta
+
+    def loss(self, X, y):
+        y_pred = self.predict(X)
+        if self.theta is not None:
+            return np.mean((y_pred - y) ** 2) / 2
     
     def score(self, X_test, y_test):
         y_pred = self.predict(X_test)
