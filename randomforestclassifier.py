@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from decisiontreeclassifier import Node, DecisionTreeClassifier
+from decisiontreeclassifier import DecisionTreeClassifier
 
 class RandomForestClassifier:
 
@@ -81,44 +81,3 @@ class RandomForestClassifier:
     def accuaracy_test(self, X_test, y_test):
         prediction = self.predict(X_test)
         return np.sum(prediction == y_test) / len(prediction)
-    
-
-
-
-df = pd.read_csv("heart.csv")
-
-X = df.iloc[:,:-1]
-y = df.iloc[:,-1]
-
-np.random.seed(420)
-
-indices = np.arange(len(X))
-np.random.shuffle(indices)
-split_1 = int(0.75 * len(X))
-
-X_train = X.iloc[indices[:split_1],:]
-y_train = y.iloc[indices[:split_1]]
-X_test = X.iloc[indices[split_1:],:]
-y_test = y.iloc[indices[split_1:]].values
-
-
-
-
-forest = RandomForestClassifier(n_trees = 51)
-forest.train(X_train, y_train)
-print(forest.accuaracy_test(X_test, y_test))
-print(forest.oob_predict())
-print(forest.oob_accuracy())
-
-print("===================")
-
-
-
-
-
-
-
-    
-
-
-

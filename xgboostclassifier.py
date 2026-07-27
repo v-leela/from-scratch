@@ -214,32 +214,3 @@ class XGBoostClassifier:
 
         for key, val in self.ftrpercent.items():
             print(f"{key} : {val}%")
-
-
-df = pd.read_csv("heart.csv")
-
-X = df.drop(columns=["target"])
-y = df.loc[:, "target"]
-
-np.random.seed(42)
-
-indices = np.arange(len(X))
-np.random.shuffle(indices)
-split_1 = int(0.7 * len(X))
-split_2 = int(0.85 * len(X))
-
-X_train = X.iloc[indices[:split_1], :]
-y_train = y.iloc[indices[:split_1]].values
-X_val = X.iloc[indices[split_1:split_2], :]
-y_val = y.iloc[indices[split_1:split_2]].values
-X_test = X.iloc[indices[split_2:], :]
-y_test = y.iloc[indices[split_2:]].values
-
-xtree = XGBoostClassifier()
-xtree.fit(X_train, y_train, X_val, y_val)
-print(xtree.val_rmse_each_tree()[:-20], xtree.best_iteration)
-# print(np.min(xtree.val_rmse_each_tree()))
-print(f"validation set accuracy --> {xtree.accuracy(X_val, y_val)}")
-print(f"test set accuracy -->       {xtree.accuracy(X_test, y_test)}")
-xtree.feature_imp()
-print("----- xgboost done -----")

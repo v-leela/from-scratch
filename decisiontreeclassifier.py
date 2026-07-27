@@ -1,41 +1,6 @@
 import numpy as np
 import pandas as pd
 
-df = pd.read_csv("heart.csv")
-
-#print(df.head())
-#print(df.shape)
-#print(df.info())
-#print(df.columns)
-#print(df.loc[df["age"]>np.mean(df["age"])])
-#print(np.mean(df["age"]))
-
-X = df.iloc[:,:-1]
-y = df.iloc[:,-1]
-#print(y)
-
-feature_names = list(X.columns)
-
-#np.random.seed(420)
-
-indices = np.arange(len(X))
-np.random.shuffle(indices)
-split_1 = int(0.7 * len(X))
-split_2 = int(0.85 * len(X))
-
-X_train = X.iloc[indices[:split_1],:]
-y_train = y.iloc[indices[:split_1]]
-X_val = X.iloc[indices[split_1:split_2],:]
-y_val = y.iloc[indices[split_1:split_2]].values
-X_test = X.iloc[indices[split_2:],:]
-y_test = y.iloc[indices[split_2:]].values
-
-
-#=========================================================
-#DECISION TREE CLASS
-#=========================================================
-
-
 class Node:
 
     def __init__(self, feature=None, threshold=None, left=None, right=None, label=None):
@@ -181,21 +146,4 @@ class DecisionTreeClassifier:
         prediction = self.predict(X_test)
 
         return np.sum(prediction == y_test) / len(prediction)
-
-
-#tree = DecisionTree()
-#tree.train(X_train, y_train)
-#print(tree.accuracy_test(X_train, y_train, X_val, y_val))
-
-
-
-
-
-
-
-
-
-
-
-
 

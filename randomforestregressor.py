@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from decisiontreeregression import Node, DecisionTreeRegressor
+from decisiontreeregression import DecisionTreeRegressor
 
 class RandomForestRegressor:
 
@@ -81,14 +81,3 @@ class RandomForestRegressor:
     def test_rmse(self, X_test, y_test):
         prediction = self.predict(X_test)
         return np.sqrt(np.mean((prediction - y_test) ** 2))
-
-
-
-
-
-
-
-
-
-
-
