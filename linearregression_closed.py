@@ -9,8 +9,6 @@ class LinearRegressionClosed:
     def fit(self, X, y):
         X = np.array(X)
         y = np.array(y)
-        self.X = X
-        self.y = y
 
         Xb = np.c_[np.ones((X.shape[0], 1)), X]
 
