@@ -75,7 +75,7 @@ class RandomForestRegressor:
         predic = self.oob_predict()
         return np.sqrt(np.mean((predic - self.y.iloc[self.y_oob_indices].values) ** 2))
 
-    def test_rmse(self, X_test, y_test):
+    def rmse(self, X_test, y_test):
         prediction = self.predict(X_test)
         return np.sqrt(np.mean((prediction - y_test) ** 2))
 
