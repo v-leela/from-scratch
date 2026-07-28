@@ -48,8 +48,7 @@ class LinearRegression:
 
     def loss(self, X, y):
         y_pred = self.predict(X)
-        if self.theta is not None:
-            return np.mean((y_pred - y) ** 2) / 2
+        return np.mean((y_pred - y) ** 2) / 2
 
     def rmse(self, X_test, y_test):
         prediction = self.predict(X_test)
