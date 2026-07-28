@@ -15,7 +15,7 @@ class RandomForestRegressor:
 
         return X_boot, y_boot, index
 
-    def train(self, X, y):
+    def fit(self, X, y):
         self.forest = []
         self.X = X
         self.y = y
@@ -29,7 +29,7 @@ class RandomForestRegressor:
 
             X_boot, y_boot, index = self.bootstrap(X, y)
             self.bootstrap_indices.append(set(index))
-            tree.train(X_boot, y_boot)
+            tree.fit(X_boot, y_boot)
 
             self.forest.append(tree)
 
@@ -78,3 +78,10 @@ class RandomForestRegressor:
     def test_rmse(self, X_test, y_test):
         prediction = self.predict(X_test)
         return np.sqrt(np.mean((prediction - y_test) ** 2))
+
+    def r_score(self, X_test, y_test):
+        y_pred = self.predict(X_test)
+        r_sq = 1 - np.sum((y_test - y_pred) ** 2) / np.sum(
+            (y_test - np.mean(y_test)) ** 2
+        )
+        return r_sq

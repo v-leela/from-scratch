@@ -92,7 +92,7 @@ class DecisionTreeRegressor:
             feature=ifeature, threshold=ithreshold, left=left_child, right=right_child
         )
 
-    def train(self, X, y):
+    def fit(self, X, y):
         self.tree = self.build_tree(X, y)
         self.features = X.columns
 
@@ -134,8 +134,14 @@ class DecisionTreeRegressor:
         print(f"{indent}└── False")
         self.print_tree(tree.right, depth + 1)
 
-    def evaluate(self, X_train, y_train, X_test, y_test):
-        self.train(X_train, y_train)
+    def rmse(self, X_test, y_test):
         prediction = self.predict(X_test)
 
         return np.sqrt(np.mean((prediction - y_test) ** 2))
+
+    def r_score(self, X_test, y_test):
+        prediction = self.predict(X_test)
+
+        return 1 - np.sum((y_test - prediction) ** 2) / np.sum(
+            (y_test - np.mean(y_test)) ** 2
+        )

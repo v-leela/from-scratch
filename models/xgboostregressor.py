@@ -175,11 +175,16 @@ class XGBoostRegressor:
 
         return np.array(final_predictions)
 
-    def evaluate(self, X_test, y_test):
+    def rmse(self, X_test, y_test):
         predictions = self.predict(X_test)
-
         return np.sqrt(np.mean((np.array(y_test) - predictions) ** 2))
-        return np.mean(np.abs(y_test - predictions))
+
+    def r_score(self, X_test, y_test):
+        y_pred = self.predict(X_test)
+        r_sq = 1 - np.sum((y_test - y_pred) ** 2) / np.sum(
+            (y_test - np.mean(y_test)) ** 2
+        )
+        return r_sq
 
     def val_rmse_each_tree(self):
         return np.array(self.val_rmse)

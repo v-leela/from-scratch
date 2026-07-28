@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class LinearRegressionClosed:
     def __init__(self):
         self.coef = None
@@ -14,7 +15,7 @@ class LinearRegressionClosed:
 
         # theta from solving the gradient of the jacobian
         theta = np.linalg.inv(Xb.T @ Xb) @ Xb.T @ y
-        
+
         self.coef = theta[1:,]
         self.intercept = theta[0,]
         self.theta = theta
@@ -30,9 +31,15 @@ class LinearRegressionClosed:
         y_pred = self.predict(X)
         if self.theta is not None:
             return np.mean((y_pred - y) ** 2) / 2
-    
-    def score(self, X_test, y_test):
+
+    def rmse(self, X_test, y_test):
+        prediction = self.predict(X_test)
+        return np.sqrt(np.mean((prediction - y_test) ** 2))
+
+    def r_score(self, X_test, y_test):
         y_pred = self.predict(X_test)
-        r_sq = 1 - np.sum((y_test - y_pred) ** 2) / np.sum((y_test - np.mean(y_test)) ** 2)
+        r_sq = 1 - np.sum((y_test - y_pred) ** 2) / np.sum(
+            (y_test - np.mean(y_test)) ** 2
+        )
 
         return r_sq
