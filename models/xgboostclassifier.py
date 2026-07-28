@@ -1,22 +1,25 @@
 import numpy as np
-import pandas as pd
-from decisiontreeclassifier import Node
+from models.decisiontreeclassifier import Node
 
 
-class SquaredError:
-    def gradient_and_hessian(self, residual):
+class Logliklihood:
+    def gradient_and_hessian(self, residual, pre_prob):
         gradient = -np.array(residual)
-        hessian = np.ones_like(residual)
+        hessian = np.array(pre_prob * (1 - pre_prob))
 
         return gradient, hessian
 
 
-class XGBoostRegressor:
-    def __init__(self, n_esti=399, learning_rate=0.1, lamb=300, gamma=0.1):
+def sigmoid(x):
+    return 1 / (1 + np.exp(-1 * x))
+
+
+class XGBoostClassifier:
+    def __init__(self, n_esti=599, learning_rate=0.33, lamb=300, gamma=0.1):
         self.n_esti = n_esti
         self.learning_rate = learning_rate
         self.trees = []
-        self.loss = SquaredError()
+        self.loss = Logliklihood()
         self.lamb = lamb
         self.gamma = gamma
         self.max_depth = 10
@@ -28,18 +31,16 @@ class XGBoostRegressor:
         self.best_iteration = 0
         self.n_bins = 10
 
-    def similarity(self, r):
-        g, h = self.loss.gradient_and_hessian(
-            r,
-        )
+    def similarity(self, r, p):
+        g, h = self.loss.gradient_and_hessian(r, p)
 
         return (np.sum(g) ** 2) / (np.sum(h) + self.lamb)
 
-    def best_split(self, X, residuals):
+    def best_split(self, X, residuals, pre_prob):
         best_gain = -float("inf")
         best_threshold = None
         best_feature = None
-        parent = self.similarity(residuals)
+        parent = self.similarity(residuals, pre_prob)
 
         for feature in list(X.columns):
             """ unq_val = np.unique(X.loc[:, feature])
@@ -52,9 +53,11 @@ class XGBoostRegressor:
 
                 r_left = residuals[logical]
                 r_right = residuals[~logical]
+                p_left = pre_prob[logical]
+                p_right = pre_prob[~logical]
 
-                left = self.similarity(r_left)
-                right = self.similarity(r_right)
+                left = self.similarity(r_left, p_left)
+                right = self.similarity(r_right, p_right)
 
                 gain = left + right - parent
 
@@ -70,8 +73,8 @@ class XGBoostRegressor:
 
         return best_feature, best_threshold, best_gain
 
-    def build_tree(self, X, residuals, depth=0):
-        leaf_val = np.sum(residuals) / (len(residuals) + self.lamb)
+    def build_tree(self, X, residuals, pre_prob, depth=0):
+        leaf_val = np.sum(residuals) / (np.sum(pre_prob * (1 - pre_prob)) + self.lamb)
 
         if depth > self.max_depth:
             return Node(label=leaf_val)
@@ -79,7 +82,7 @@ class XGBoostRegressor:
         if len(residuals) < self.min_sample_split:
             return Node(label=leaf_val)
 
-        ifeature, ithreshold, igain = self.best_split(X, residuals)
+        ifeature, ithreshold, igain = self.best_split(X, residuals, pre_prob)
 
         if ifeature is None:
             return Node(label=leaf_val)
@@ -88,8 +91,12 @@ class XGBoostRegressor:
 
         log = X.loc[:, ifeature] <= ithreshold
 
-        left_child = self.build_tree(X.loc[log], residuals[log], depth + 1)
-        right_child = self.build_tree(X.loc[~log], residuals[~log], depth + 1)
+        left_child = self.build_tree(
+            X.loc[log], residuals[log], pre_prob[log], depth + 1
+        )
+        right_child = self.build_tree(
+            X.loc[~log], residuals[~log], pre_prob[~log], depth + 1
+        )
 
         return Node(ifeature, ithreshold, left_child, right_child)
 
@@ -112,9 +119,11 @@ class XGBoostRegressor:
         return np.array(prediction)
 
     def boosting(self, X, y):
-        self.initial_prediction = np.mean(y)
+        self.initial_prediction = np.log(np.sum(y == 1) / np.sum(y == 0))
         self.iprediction = np.full(y.shape, self.initial_prediction)
-        residuals = np.array(y - self.iprediction)
+        pre_prob = sigmoid(self.iprediction)
+        residuals = np.array(y - pre_prob)
+
         self.val_rmse = []
         best_rmse = float("inf")
         rnds_noimporve = 0
@@ -127,11 +136,14 @@ class XGBoostRegressor:
                 X.shape[1], int(self.col_subsample * X.shape[1]), replace=False
             )
             self.btree = self.build_tree(
-                X.iloc[row_idx][self.features[col_features]], residuals[row_idx]
+                X.iloc[row_idx][self.features[col_features]],
+                residuals[row_idx],
+                pre_prob[row_idx],
             )
             self.trees.append(self.btree)
             self.iprediction += self.learning_rate * self.predict_tree(X)
-            residuals = y - self.iprediction
+            pre_prob = sigmoid(self.iprediction)
+            residuals = np.array(y - pre_prob)
 
             vali_rmse = self.evaluate(self.X_val, self.y_val)
             self.val_rmse.append(vali_rmse)
@@ -166,7 +178,7 @@ class XGBoostRegressor:
         for tree in self.trees[:n_trees]:
             final_pred += self.learning_rate * self.predict_onetree(tree, x)
 
-        return final_pred
+        return sigmoid(final_pred)
 
     def predict(self, X):
         final_predictions = []
@@ -180,7 +192,13 @@ class XGBoostRegressor:
         predictions = self.predict(X_test)
 
         return np.sqrt(np.mean((np.array(y_test) - predictions) ** 2))
-        return np.mean(np.abs(y_test - predictions))
+
+    def accuracy(self, X_test, y_test):
+        predictions = self.predict(X_test)
+        predictions[predictions >= 0.5] = 1
+        predictions[predictions < 0.5] = 0
+
+        return np.mean(y_test == predictions)
 
     def val_rmse_each_tree(self):
         return np.array(self.val_rmse)
@@ -193,4 +211,4 @@ class XGBoostRegressor:
         }
 
         for key, val in self.ftrpercent.items():
-            print(f"{key} : {val}")
+            print(f"{key} : {val}%")

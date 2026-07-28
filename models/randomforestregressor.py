@@ -1,33 +1,31 @@
 import numpy as np
-import pandas as pd
-from decisiontreeregression import DecisionTreeRegressor
+from models.decisiontreeregressor import DecisionTreeRegressor
+
 
 class RandomForestRegressor:
-
-    def __init__(self, n_trees = 99, n_col = None):
+    def __init__(self, n_trees=99, n_col=None):
         self.n_trees = n_trees
         self.n_col = n_col
-        
 
     def bootstrap(self, X, y):
-        index = np.random.choice(len(X), size = len(X), replace = True)
+        index = np.random.choice(len(X), size=len(X), replace=True)
 
-        X_boot = X.iloc[index,:]
+        X_boot = X.iloc[index, :]
         y_boot = y.iloc[index]
 
         return X_boot, y_boot, index
-    
+
     def train(self, X, y):
         self.forest = []
         self.X = X
         self.y = y
         self.bootstrap_indices = []
-        
-        if self.n_col == None:
+
+        if self.n_col is None:
             self.n_col = int(np.sqrt(X.shape[1]))
 
         for _ in range(self.n_trees):
-            tree = DecisionTreeRegressor(bagging = True, n_col = self.n_col)
+            tree = DecisionTreeRegressor(bagging=True, n_col=self.n_col)
 
             X_boot, y_boot, index = self.bootstrap(X, y)
             self.bootstrap_indices.append(set(index))
@@ -43,7 +41,7 @@ class RandomForestRegressor:
             predictions.append(prediction)
 
         return np.array(predictions)
-    
+
     def predict(self, X):
         final_prediction = []
         predictions = self.predict_each(X)
@@ -53,7 +51,7 @@ class RandomForestRegressor:
             final_prediction.append(final)
 
         return np.array(final_prediction)
-    
+
     def oob_predict(self):
         self.y_oob_indices = []
         final_predictions = []
@@ -62,7 +60,6 @@ class RandomForestRegressor:
             pred_val = []
 
             for j, tree in enumerate(self.forest):
-
                 if i not in self.bootstrap_indices[j]:
                     predi = tree.predict(self.X.iloc[[i]])[0]
                     pred_val.append(predi)
@@ -73,7 +70,7 @@ class RandomForestRegressor:
                 self.y_oob_indices.append(i)
 
         return np.array(final_predictions)
-    
+
     def oob_rmse(self):
         predic = self.oob_predict()
         return np.sqrt(np.mean((predic - self.y.iloc[self.y_oob_indices].values) ** 2))

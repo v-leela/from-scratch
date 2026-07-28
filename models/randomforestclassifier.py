@@ -1,37 +1,35 @@
 import numpy as np
-import pandas as pd
-from decisiontreeclassifier import DecisionTreeClassifier
+from models.decisiontreeclassifier import DecisionTreeClassifier
+
 
 class RandomForestClassifier:
-
-    def __init__(self, n_trees = 99, n_col = None):
+    def __init__(self, n_trees=99, n_col=None):
         self.n_trees = n_trees
         self.n_col = n_col
-        
 
     def bootstrap(self, X, y):
-        index = np.random.choice(len(X), size = len(X), replace = True)
+        index = np.random.choice(len(X), size=len(X), replace=True)
 
-        X_boot = X.iloc[index,:]
+        X_boot = X.iloc[index, :]
         y_boot = y.iloc[index]
 
         return X_boot, y_boot, index
-    
-    def train(self, X, y):
+
+    def fit(self, X, y):
         self.forest = []
         self.X = X
         self.y = y
         self.bootstrap_indices = []
-        
-        if self.n_col == None:
+
+        if self.n_col is None:
             self.n_col = int(np.sqrt(X.shape[1]))
 
         for _ in range(self.n_trees):
-            tree = DecisionTreeClassifier(bagging = True, n_col = self.n_col)
+            tree = DecisionTreeClassifier(bagging=True, n_col=self.n_col)
 
             X_boot, y_boot, index = self.bootstrap(X, y)
             self.bootstrap_indices.append(index)
-            tree.train(X_boot, y_boot)
+            tree.fit(X_boot, y_boot)
 
             self.forest.append(tree)
 
@@ -43,7 +41,7 @@ class RandomForestClassifier:
             predictions.append(prediction)
 
         return np.array(predictions)
-    
+
     def predict(self, X):
         final_prediction = []
         predictions = self.predict_each(X)
@@ -53,7 +51,7 @@ class RandomForestClassifier:
             final_prediction.append(final)
 
         return np.array(final_prediction)
-    
+
     def oob_predict(self):
         self.y_oob_indices = []
         final_predictions = []
@@ -62,7 +60,6 @@ class RandomForestClassifier:
             votes = []
 
             for j, tree in enumerate(self.forest):
-
                 if i not in self.bootstrap_indices[j]:
                     predi = tree.predict(self.X.iloc[[i]])[0]
                     votes.append(predi)
@@ -80,4 +77,4 @@ class RandomForestClassifier:
 
     def accuaracy_test(self, X_test, y_test):
         prediction = self.predict(X_test)
-        return np.sum(prediction == y_test) / len(prediction)
+        return np.mean(prediction == y_test)
