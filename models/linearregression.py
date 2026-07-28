@@ -2,7 +2,7 @@ import numpy as np
 
 
 class LinearRegression:
-    def __init__(self, alpha=0.1, iterations=100, tol=1e-7):
+    def __init__(self, alpha=0.01, iterations=100, tol=1e-7):
         self.coef = None
         self.intercept = 0
         self.theta = None
