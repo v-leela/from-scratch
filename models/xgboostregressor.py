@@ -130,7 +130,7 @@ class XGBoostRegressor:
             )
             self.trees.append(self.btree)
             self.iprediction += self.learning_rate * self.predict_tree(X)
-            residuals = y - self.iprediction
+            residuals = np.array(y - self.iprediction)
 
             vali_rmse = self.rmse(self.X_val, self.y_val)
             self.val_rmse.append(vali_rmse)
