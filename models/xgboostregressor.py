@@ -126,13 +126,13 @@ class XGBoostRegressor:
                 X.shape[1], int(self.col_subsample * X.shape[1]), replace=False
             )
             self.btree = self.build_tree(
-                X.iloc[row_idx][self.features[col_features]], residuals[row_idx]
+                X.iloc[row_idx, col_features], residuals[row_idx]
             )
             self.trees.append(self.btree)
             self.iprediction += self.learning_rate * self.predict_tree(X)
             residuals = y - self.iprediction
 
-            vali_rmse = self.evaluate(self.X_val, self.y_val)
+            vali_rmse = self.rmse(self.X_val, self.y_val)
             self.val_rmse.append(vali_rmse)
 
             if vali_rmse < best_rmse:
@@ -191,6 +191,9 @@ class XGBoostRegressor:
 
     def feature_imp(self):
         total = sum(self.features_gain.values())
+
+        if total == 0:
+            return
 
         self.ftrpercent = {
             key: (val / total) * 100 for key, val in self.features_gain.items()
